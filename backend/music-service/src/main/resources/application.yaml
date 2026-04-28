@@ -18,7 +18,7 @@ minio:
   bucket: "velvet-music"
 
 database:
-  url: "jdbc:postgresql://localhost:5432/velvet_auth"
+  url: "jdbc:postgresql://localhost:5432/velvet_music"
   user: "postgres"
   password: "postgres"
   driver: "org.postgresql.Driver"
