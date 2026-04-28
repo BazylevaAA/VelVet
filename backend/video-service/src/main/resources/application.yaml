@@ -1,0 +1,24 @@
+ktor:
+  application:
+    modules:
+      - ApplicationKt.module
+  deployment:
+    port: 8083
+
+jwt:
+  secret: "TMP2lGzHgGcJvKMasHYoKVVz7MIjBzIelqq4n4wHAD7"
+  issuer: "velvet-auth"
+  audience: "velvet-users"
+  realm: "velvet"
+
+minio:
+  endpoint: "http://localhost:9000"
+  accessKey: "minioadmin"
+  secretKey: "minioadmin"
+  bucket: "velvet-video"
+
+database:
+  url: "jdbc:postgresql://localhost:5432/velvet_video"
+  user: "postgres"
+  password: "postgres"
+  driver: "org.postgresql.Driver"
