@@ -1,0 +1,24 @@
+ktor:
+  application:
+    modules:
+      - com.example.ApplicationKt.module
+  deployment:
+    port: 8082
+
+jwt:
+  secret: "TMP2lGzHgGcJvKMasHYoKVVz7MIjBzIelqq4n4wHAD7"
+  issuer: "velvet-auth"
+  audience: "velvet-users"
+  realm: "velvet"
+
+minio:
+  endpoint: "http://localhost:9000"
+  accessKey: "minioadmin"
+  secretKey: "minioadmin"
+  bucket: "velvet-music"
+
+database:
+  url: "jdbc:postgresql://localhost:5432/velvet_auth"
+  user: "postgres"
+  password: "postgres"
+  driver: "org.postgresql.Driver"
