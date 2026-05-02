@@ -2,14 +2,15 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10"
+    alias(libs.plugins.kotlin.android)
 }
 
 android {
-    namespace = "com.alexandr.velvet"
+    namespace = "com.example.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.alexandr.velvet"
+        applicationId = "com.example.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -34,6 +35,9 @@ android {
 
     buildFeatures {
         compose = true
+    }
+    kotlinOptions {
+        jvmTarget = "11"
     }
 }
 
