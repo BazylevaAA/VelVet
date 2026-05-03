@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.app.core.storage.TokenStorage
 import com.example.app.feature.auth.presentation.LoginScreen
 import com.example.app.feature.auth.presentation.RegisterScreen
+import com.example.app.feature.home.presentation.HomeScreen
 import org.koin.compose.koinInject
 
 object Routes {
@@ -124,10 +125,9 @@ fun NavGraph() {
                 )
             }
 
-            // --- Main ---
-//            composable(Routes.HOME) {
-//                HomeScreen()
-//            }
+            composable(Routes.HOME) {
+                HomeScreen()
+            }
 //
 //            composable(Routes.MUSIC) {
 //                MusicScreen()
