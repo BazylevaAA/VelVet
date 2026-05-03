@@ -27,6 +27,7 @@ import com.example.app.feature.auth.presentation.LoginScreen
 import com.example.app.feature.auth.presentation.RegisterScreen
 import com.example.app.feature.home.presentation.HomeScreen
 import com.example.app.feature.music.presentation.MusicScreen
+import com.example.app.feature.video.presentation.VideoScreen
 import org.koin.compose.koinInject
 
 object Routes {
@@ -52,9 +53,11 @@ val bottomNavItems = listOf(
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
-    val tokenStorage  = koinInject<TokenStorage>()
+    val tokenStorage = koinInject<TokenStorage>()
 
-    val isLoggedIn by tokenStorage.isLoggedIn.collectAsState(initial = false)
+    val isLoggedIn by tokenStorage.isLoggedIn.collectAsState(initial = null)
+
+    if (isLoggedIn == null) return
 
     val currentRoute = navController
         .currentBackStackEntryAsState().value?.destination?.route
@@ -87,11 +90,11 @@ fun NavGraph() {
                             icon  = { Icon(item.icon, contentDescription = item.label) },
                             label = { Text(item.label) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor   = MaterialTheme.colorScheme.primary,
-                                selectedTextColor   = MaterialTheme.colorScheme.primary,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                indicatorColor      = MaterialTheme.colorScheme.surfaceVariant
+                                indicatorColor = MaterialTheme.colorScheme.surfaceVariant
                             )
                         )
                     }
@@ -100,18 +103,18 @@ fun NavGraph() {
         }
     ) { paddingValues ->
         NavHost(
-            navController    = navController,
-            startDestination = if (isLoggedIn) Routes.HOME else Routes.LOGIN,
-            modifier         = Modifier.padding(paddingValues)
+            navController = navController,
+            startDestination = if (isLoggedIn == true) Routes.HOME else Routes.LOGIN,
+            modifier = Modifier.padding(paddingValues)
         ) {
             composable(Routes.LOGIN) {
                 LoginScreen(
-                    onLoginSuccess   = {
+                    onLoginSuccess = {
                         navController.navigate(Routes.HOME) {
                             popUpTo(Routes.LOGIN) { inclusive = true }
                         }
                     },
-                    onRegisterClick  = { navController.navigate(Routes.REGISTER) }
+                    onRegisterClick = { navController.navigate(Routes.REGISTER) }
                 )
             }
 
@@ -133,10 +136,10 @@ fun NavGraph() {
             composable(Routes.MUSIC) {
                 MusicScreen()
             }
-//
-//            composable(Routes.MOVIES) {
-//                MovieScreen()
-//            }
+
+            composable(Routes.MOVIES) {
+                VideoScreen()
+            }
         }
     }
 }

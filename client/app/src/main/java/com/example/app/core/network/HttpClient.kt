@@ -9,7 +9,7 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import io.ktor.client.plugins.logging.*
 
-const val BASE_URL = "http://10.0.0.2"
+const val BASE_URL = "http://10.0.2.2"
 
 fun createHttpClient(): HttpClient{
     return HttpClient(Android){
