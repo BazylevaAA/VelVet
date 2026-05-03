@@ -26,6 +26,7 @@ import com.example.app.core.storage.TokenStorage
 import com.example.app.feature.auth.presentation.LoginScreen
 import com.example.app.feature.auth.presentation.RegisterScreen
 import com.example.app.feature.home.presentation.HomeScreen
+import com.example.app.feature.music.presentation.MusicScreen
 import org.koin.compose.koinInject
 
 object Routes {
@@ -128,10 +129,10 @@ fun NavGraph() {
             composable(Routes.HOME) {
                 HomeScreen()
             }
-//
-//            composable(Routes.MUSIC) {
-//                MusicScreen()
-//            }
+
+            composable(Routes.MUSIC) {
+                MusicScreen()
+            }
 //
 //            composable(Routes.MOVIES) {
 //                MovieScreen()

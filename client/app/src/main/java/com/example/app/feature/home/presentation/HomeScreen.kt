@@ -7,9 +7,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,14 +20,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.app.core.storage.TokenStorage
+import com.example.app.feature.music.domain.model.TrackModel
+import com.example.app.feature.music.presentation.formatDuration
+import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(viewModel: HomeViewModel = koinViewModel()) {
     val tokenStorage = koinInject<TokenStorage>()
     val name by tokenStorage.name.collectAsState(initial = "")
+    val uiState by viewModel.uiState.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -76,7 +82,7 @@ fun HomeScreen() {
 
         item {
             LazyRow(
-                contentPadding    = PaddingValues(horizontal = 24.dp),
+                contentPadding        = PaddingValues(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(quickAccessItems) { item ->
@@ -87,26 +93,112 @@ fun HomeScreen() {
 
         item { Spacer(modifier = Modifier.height(32.dp)) }
 
-        item {
-            SectionHeader(title = "Recently Added Music")
-        }
+        item { SectionHeader(title = "Recently Added Music") }
 
         item {
-            EmptySection(message = "No tracks yet")
+            when {
+                uiState.isLoadingTracks -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                uiState.recentTracks.isEmpty() -> EmptySection(message = "No tracks yet")
+                else -> {
+                    LazyRow(
+                        contentPadding        = PaddingValues(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.recentTracks, key = { it.id }) { track ->
+                            RecentTrackCard(track = track)
+                        }
+                    }
+                }
+            }
         }
 
         item { Spacer(modifier = Modifier.height(32.dp)) }
 
-        item {
-            SectionHeader(title = "Recently Added Movies")
-        }
+        item { SectionHeader(title = "Recently Added Movies") }
 
-        item {
-            EmptySection(message = "No movies yet")
-        }
+        item { EmptySection(message = "No movies yet") }
     }
 }
 
+@Composable
+fun RecentTrackCard(track: TrackModel) {
+    Card(
+        modifier = Modifier
+            .width(160.dp)
+            .height(160.dp),
+        shape  = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    )
+                )
+        ) {
+            Icon(
+                imageVector        = Icons.Filled.MusicNote,
+                contentDescription = null,
+                tint               = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                modifier           = Modifier
+                    .size(64.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text     = track.title,
+                    style    = MaterialTheme.typography.titleSmall,
+                    color    = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text     = track.artist,
+                    style    = MaterialTheme.typography.bodySmall,
+                    color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector        = Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                        tint               = MaterialTheme.colorScheme.primary,
+                        modifier           = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text  = formatDuration(track.duration),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
 
 data class QuickAccessItem(
     val title : String,
