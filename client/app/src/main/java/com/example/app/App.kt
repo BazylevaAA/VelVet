@@ -1,6 +1,7 @@
 package com.example.app
 
 import android.app.Application
+import com.example.app.feature.auth.di.authModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -11,7 +12,7 @@ class App : Application(){
         startKoin {
             androidContext(this@App)
             modules(
-//                authModule,
+                authModule,
 //                musicModule,
 //                movieModule
             )

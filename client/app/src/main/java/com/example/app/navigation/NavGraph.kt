@@ -23,6 +23,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.app.core.storage.TokenStorage
+import com.example.app.feature.auth.presentation.LoginScreen
+import com.example.app.feature.auth.presentation.RegisterScreen
 import org.koin.compose.koinInject
 
 object Routes {
@@ -100,7 +102,6 @@ fun NavGraph() {
             startDestination = if (isLoggedIn) Routes.HOME else Routes.LOGIN,
             modifier         = Modifier.padding(paddingValues)
         ) {
-            // --- Auth ---
             composable(Routes.LOGIN) {
                 LoginScreen(
                     onLoginSuccess   = {
@@ -124,17 +125,17 @@ fun NavGraph() {
             }
 
             // --- Main ---
-            composable(Routes.HOME) {
-                HomeScreen()
-            }
-
-            composable(Routes.MUSIC) {
-                MusicScreen()
-            }
-
-            composable(Routes.MOVIES) {
-                MovieScreen()
-            }
+//            composable(Routes.HOME) {
+//                HomeScreen()
+//            }
+//
+//            composable(Routes.MUSIC) {
+//                MusicScreen()
+//            }
+//
+//            composable(Routes.MOVIES) {
+//                MovieScreen()
+//            }
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.example.app.core.ui.theme.VelvetTheme
+import com.example.app.navigation.NavGraph
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -13,6 +14,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             VelvetTheme {
                 // TODO: NavGraph()
+                NavGraph()
             }
         }
     }
