@@ -104,8 +104,10 @@ class VideoService(
         videoRepository.delete(id)
     }
 
-    // Стриминг видео(стримминг для карточки)
-    fun streamVideo(key: String): InputStream {
+    suspend fun streamVideo(id: Int): InputStream {
+        val video = videoRepository.findById(id)
+            ?: throw VideoException(HttpStatusCode.NotFound, "Video not found")
+        val key = video.fileUrl.substringAfter("velvet-video/")
         return MinioStorage.getFile(key)
     }
 

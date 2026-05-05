@@ -101,8 +101,10 @@ class MusicService(
         trackRepository.delete(id)
     }
 
-    fun streamTrack(id: Int): InputStream {
-        val key = "tracks/$id"
+    suspend fun streamTrack(id: Int): InputStream {
+        val track = trackRepository.findById(id)
+            ?: throw MusicException(HttpStatusCode.NotFound, "Track not found")
+        val key = track.fileUrl.substringAfter("velvet-music/")
         return MinioStorage.getFile(key)
     }
 

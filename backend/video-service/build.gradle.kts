@@ -50,6 +50,7 @@ implementation("io.ktor:ktor-server-status-pages")
     // --- MinIO S3 ---
     implementation(platform("software.amazon.awssdk:bom:2.25.0"))
     implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:apache-client")
 
     // --- Логи ---
     implementation("ch.qos.logback:logback-classic:$logback_version")

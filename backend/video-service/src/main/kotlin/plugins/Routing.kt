@@ -18,13 +18,14 @@ fun Application.configureRouting() {
     val videoService = VideoService(VideoRepository())
 
     routing {
+        route("/api/v1"){
         authenticate("auth-jwt") {
 
             post("/videos/upload") {
                 val userId = call.principal<JWTPrincipal>()!!
                     .payload.getClaim("userId").asInt()
 
-                val multipart = call.receiveMultipart()
+                val multipart = call.receiveMultipart(formFieldLimit = 2L * 1024 * 1024 * 1024)
 
                 var request: CreateVideoRequest? = null
                 var videoBytes: ByteArray? = null
@@ -91,15 +92,19 @@ fun Application.configureRouting() {
                 call.respond(HttpStatusCode.NoContent)
             }
 
-            get("/videos/stream/{key}") {
-                val key = call.parameters["key"]
-                    ?: throw VideoException(HttpStatusCode.BadRequest, "Key is required")
-                val stream = videoService.streamVideo(key)
+            get("/videos/{id}/stream") {
+                val userId = call.principal<JWTPrincipal>()!!
+                    .payload.getClaim("userId").asInt()
+                val id = call.parameters["id"]?.toIntOrNull()
+                    ?: throw VideoException(HttpStatusCode.BadRequest, "Invalid video id")
+                videoService.getVideoById(id, userId)
+                val stream = videoService.streamVideo(id)
                 call.respondOutputStream(ContentType.Video.MP4) {
                     stream.copyTo(this)
                     stream.close()
                 }
             }
         }
+    }
     }
 }

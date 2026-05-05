@@ -4,8 +4,11 @@ import io.ktor.server.application.Application
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.core.sync.RequestBody
+import software.amazon.awssdk.http.apache.ApacheHttpClient
 import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.S3Configuration
 import java.net.URI
+import java.time.Duration
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
@@ -32,7 +35,17 @@ object MinioStorage {
             .endpointOverride(URI.create(endpoint))
             .credentialsProvider(StaticCredentialsProvider.create(credentials))
             .region(Region.US_EAST_1)
-            .forcePathStyle(true)
+            .serviceConfiguration(
+                S3Configuration.builder()
+                    .pathStyleAccessEnabled(true)
+                    .chunkedEncodingEnabled(false)
+                    .build()
+            )
+            .httpClientBuilder(
+                ApacheHttpClient.builder()
+                    .connectionTimeout(Duration.ofSeconds(30))
+                    .socketTimeout(Duration.ofMinutes(15))
+            )
             .build()
 
         createBucketIfNotExists()
