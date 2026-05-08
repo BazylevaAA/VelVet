@@ -13,8 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.media3.ui.PlayerView
 import com.example.app.feature.movie.presentation.VideoUiState
 import com.example.app.feature.movie.presentation.VideoViewModel
 import com.example.app.feature.video.domain.model.VideoModel
@@ -25,125 +30,168 @@ import org.koin.androidx.compose.koinViewModel
 fun VideoScreen(viewModel: VideoViewModel = koinViewModel()) {
 
     val uiState by viewModel.uiState.collectAsState()
+    val currentVideo by viewModel.currentVideo.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val exoPlayer by viewModel.exoPlayer.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
 
-    Box(
+    if (currentVideo != null && exoPlayer != null) {
+        Dialog(
+            onDismissRequest = { viewModel.stopPlayer() },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+                AndroidView(
+                    factory = { ctx ->
+                        PlayerView(ctx).apply {
+                            useController = true
+                        }
+                    },
+                    update = { playerView ->
+                        playerView.player = exoPlayer
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f)
+                        .align(Alignment.Center)
+                )
+                IconButton(
+                    onClick = { viewModel.stopPlayer() },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        Icons.Filled.Close,
+                        contentDescription = null,
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f),
-                                MaterialTheme.colorScheme.background
-                            )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.error.copy(alpha = 0.3f),
+                            MaterialTheme.colorScheme.background
                         )
                     )
-                    .padding(horizontal = 24.dp, vertical = 32.dp)
-            ) {
-                Text(
-                    text = "My Movies",
-                    style = MaterialTheme.typography.headlineLarge,
-                    color = MaterialTheme.colorScheme.onBackground
                 )
-            }
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Search movies...") },
-                leadingIcon = { Icon(Icons.Filled.Search, null) },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Filled.Close, null)
-                        }
-                    }
-                },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                )
+                .padding(horizontal = 24.dp, vertical = 32.dp)
+        ) {
+            Text(
+                text = "My Movies",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onBackground
             )
+        }
 
-            when (val state = uiState) {
-
-                is VideoUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Search movies...") },
+            leadingIcon = { Icon(Icons.Filled.Search, null) },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { searchQuery = "" }) {
+                        Icon(Icons.Filled.Close, null)
                     }
                 }
+            },
+            singleLine = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(24.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            )
+        )
 
-                is VideoUiState.Empty -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Filled.Movie,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "No movies yet",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+        when (val state = uiState) {
+
+            is VideoUiState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            }
+
+            is VideoUiState.Empty -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Filled.Movie,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "No movies yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            is VideoUiState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = state.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = { viewModel.loadVideos() }) {
+                            Text("Retry")
                         }
                     }
                 }
+            }
 
-                is VideoUiState.Error -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = state.message,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { viewModel.loadVideos() }) {
-                                Text("Retry")
-                            }
-                        }
-                    }
+            is VideoUiState.Success -> {
+                val filtered = state.videos.filter {
+                    it.title.contains(searchQuery, ignoreCase = true) ||
+                            it.director?.contains(searchQuery, ignoreCase = true) == true
                 }
 
-                is VideoUiState.Success -> {
-                    val filtered = state.videos.filter {
-                        it.title.contains(searchQuery, ignoreCase = true) ||
-                                it.director?.contains(searchQuery, ignoreCase = true) == true
-                    }
-
-                    LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(filtered, key = { it.id }) { video ->
-                            VideoItem(
-                                video = video,
-                                onDelete = { viewModel.deleteVideo(video.id) }
-                            )
-                        }
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filtered, key = { it.id }) { video ->
+                        VideoItem(
+                            video = video,
+                            isSelected = currentVideo?.id == video.id,
+                            onClick = { viewModel.playVideo(video) },
+                            onDelete = { viewModel.deleteVideo(video.id) }
+                        )
                     }
                 }
             }
@@ -153,16 +201,22 @@ fun VideoScreen(viewModel: VideoViewModel = koinViewModel()) {
 
 @Composable
 fun VideoItem(
-    video : VideoModel,
-    onDelete : () -> Unit
+    video: VideoModel,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
+        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+            else
+                MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
         Row(
@@ -176,13 +230,19 @@ fun VideoItem(
                 modifier = Modifier
                     .size(width = 60.dp, height = 80.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface),
+                    .background(
+                        if (isSelected)
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        else
+                            MaterialTheme.colorScheme.surface
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    Icons.Filled.Movie,
+                    imageVector = if (isSelected) Icons.Filled.PlayArrow else Icons.Filled.Movie,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -193,7 +253,8 @@ fun VideoItem(
                 Text(
                     text = video.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -215,7 +276,6 @@ fun VideoItem(
                         label = { Text("${video.year}") },
                         modifier = Modifier.height(24.dp)
                     )
-
                     video.genre?.let {
                         AssistChip(
                             onClick = {},
@@ -223,7 +283,6 @@ fun VideoItem(
                             modifier = Modifier.height(24.dp)
                         )
                     }
-
                     AssistChip(
                         onClick = {},
                         label = { Text(formatDuration(video.duration)) },

@@ -82,6 +82,13 @@ dependencies {
     // --- Lifecycle ViewModel ---
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
 
+    // --- Media3 ExoPlayer ---
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-datasource:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.common.ktx)
+
     // --- Тесты ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.app.feature.music.domain.model.TrackModel
 import com.example.app.feature.music.domain.usecase.GetTracksUseCase
+import com.example.app.feature.video.domain.model.VideoModel
+import com.example.app.feature.video.domain.usecase.GetVideoUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -11,11 +13,14 @@ import kotlinx.coroutines.launch
 
 data class HomeUiState(
     val recentTracks: List<TrackModel> = emptyList(),
-    val isLoadingTracks: Boolean = true
+    val recentVideos: List<VideoModel> = emptyList(),
+    val isLoadingTracks: Boolean = true,
+    val isLoadingVideos: Boolean = true
 )
 
 class HomeViewModel(
-    private val getTracksUseCase: GetTracksUseCase
+    private val getTracksUseCase: GetTracksUseCase,
+    private val getVideosUseCase: GetVideoUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -23,6 +28,7 @@ class HomeViewModel(
 
     init {
         loadTracks()
+        loadVideos()
     }
 
     fun loadTracks() {
@@ -37,6 +43,22 @@ class HomeViewModel(
                 }
                 .onFailure {
                     _uiState.value = _uiState.value.copy(isLoadingTracks = false)
+                }
+        }
+    }
+
+    fun loadVideos() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingVideos = true)
+            getVideosUseCase()
+                .onSuccess { videos ->
+                    _uiState.value = _uiState.value.copy(
+                        recentVideos = videos.take(5),
+                        isLoadingVideos = false
+                    )
+                }
+                .onFailure {
+                    _uiState.value = _uiState.value.copy(isLoadingVideos = false)
                 }
         }
     }

@@ -2,6 +2,7 @@ package com.example.app.feature.movie.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.app.feature.video.data.VideoPlayerManager
 import com.example.app.feature.video.domain.model.VideoModel
 import com.example.app.feature.video.domain.usecase.DeleteVideoUseCase
 import com.example.app.feature.video.domain.usecase.GetVideoUseCase
@@ -11,19 +12,26 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 sealed class VideoUiState {
-    object Loading: VideoUiState()
+    object Loading : VideoUiState()
     object Empty : VideoUiState()
     data class Success(val videos: List<VideoModel>) : VideoUiState()
-    data class Error(val message: String): VideoUiState()
+    data class Error(val message: String) : VideoUiState()
 }
 
 class VideoViewModel(
-    private val getVideosUseCase  : GetVideoUseCase,
-    private val deleteVideoUseCase: DeleteVideoUseCase
+    private val getVideosUseCase: GetVideoUseCase,
+    private val deleteVideoUseCase: DeleteVideoUseCase,
+    private val playerManager: VideoPlayerManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<VideoUiState>(VideoUiState.Loading)
     val uiState: StateFlow<VideoUiState> = _uiState.asStateFlow()
+
+    private val _currentVideo = MutableStateFlow<VideoModel?>(null)
+    val currentVideo: StateFlow<VideoModel?> = _currentVideo.asStateFlow()
+
+    val isPlaying: StateFlow<Boolean> = playerManager.isPlaying
+    val exoPlayer = playerManager.player
 
     init {
         loadVideos()
@@ -34,10 +42,7 @@ class VideoViewModel(
             _uiState.value = VideoUiState.Loading
             getVideosUseCase()
                 .onSuccess { videos ->
-                    _uiState.value = if (videos.isEmpty())
-                        VideoUiState.Empty
-                    else
-                        VideoUiState.Success(videos)
+                    _uiState.value = if (videos.isEmpty()) VideoUiState.Empty else VideoUiState.Success(videos)
                 }
                 .onFailure {
                     _uiState.value = VideoUiState.Error(it.message ?: "Unknown error")
@@ -53,5 +58,21 @@ class VideoViewModel(
                     _uiState.value = VideoUiState.Error(it.message ?: "Unknown error")
                 }
         }
+    }
+
+    fun playVideo(video: VideoModel) {
+        _currentVideo.value = video
+        viewModelScope.launch {
+            playerManager.playVideo(video.id)
+        }
+    }
+
+    fun togglePlayPause() {
+        playerManager.togglePlayPause()
+    }
+
+    fun stopPlayer() {
+        playerManager.stop()
+        _currentVideo.value = null
     }
 }

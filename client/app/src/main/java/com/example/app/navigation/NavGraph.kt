@@ -17,7 +17,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -31,11 +30,11 @@ import com.example.app.feature.video.presentation.VideoScreen
 import org.koin.compose.koinInject
 
 object Routes {
-    const val LOGIN = "login"
+    const val LOGIN    = "login"
     const val REGISTER = "register"
-    const val HOME = "home"
-    const val MUSIC = "music"
-    const val MOVIES = "movies"
+    const val HOME     = "home"
+    const val MUSIC    = "music"
+    const val MOVIES   = "movies"
 }
 
 data class BottomNavItem(
@@ -45,15 +44,15 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Routes.HOME, Icons.Filled.Home, "Home"),
-    BottomNavItem(Routes.MUSIC, Icons.Filled.MusicNote, "Music"),
-    BottomNavItem(Routes.MOVIES, Icons.Filled.Movie, "Movies")
+    BottomNavItem(Routes.HOME,   Icons.Filled.Home,      "Home"),
+    BottomNavItem(Routes.MUSIC,  Icons.Filled.MusicNote, "Music"),
+    BottomNavItem(Routes.MOVIES, Icons.Filled.Movie,     "Movies")
 )
 
 @Composable
 fun NavGraph() {
     val navController = rememberNavController()
-    val tokenStorage = koinInject<TokenStorage>()
+    val tokenStorage  = koinInject<TokenStorage>()
 
     val isLoggedIn by tokenStorage.isLoggedIn.collectAsState(initial = null)
 
@@ -62,39 +61,36 @@ fun NavGraph() {
     val currentRoute = navController
         .currentBackStackEntryAsState().value?.destination?.route
 
+    val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.MUSIC, Routes.MOVIES)
 
-    val showBottomBar = currentRoute in listOf(
-        Routes.HOME,
-        Routes.MUSIC,
-        Routes.MOVIES
-    )
+    // Единая функция навигации по табам — всегда popUpTo(HOME) явно,
+    // чтобы findStartDestination() не возвращал LOGIN после входа в систему.
+    fun navigateToTab(route: String) {
+        navController.navigate(route) {
+            popUpTo(Routes.HOME) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState    = true
+        }
+    }
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ) {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     bottomNavItems.forEach { item ->
                         NavigationBarItem(
                             selected = currentRoute == item.route,
-                            onClick  = {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState    = true
-                                }
-                            },
-                            icon  = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                            onClick  = { navigateToTab(item.route) },
+                            icon     = { Icon(item.icon, contentDescription = item.label) },
+                            label    = { Text(item.label) },
+                            colors   = NavigationBarItemDefaults.colors(
+                                selectedIconColor   = MaterialTheme.colorScheme.primary,
+                                selectedTextColor   = MaterialTheme.colorScheme.primary,
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                indicatorColor = MaterialTheme.colorScheme.surfaceVariant
+                                indicatorColor      = MaterialTheme.colorScheme.surfaceVariant
                             )
                         )
                     }
@@ -103,9 +99,9 @@ fun NavGraph() {
         }
     ) { paddingValues ->
         NavHost(
-            navController = navController,
+            navController    = navController,
             startDestination = if (isLoggedIn == true) Routes.HOME else Routes.LOGIN,
-            modifier = Modifier.padding(paddingValues)
+            modifier         = Modifier.padding(paddingValues)
         ) {
             composable(Routes.LOGIN) {
                 LoginScreen(
@@ -130,7 +126,10 @@ fun NavGraph() {
             }
 
             composable(Routes.HOME) {
-                HomeScreen()
+                HomeScreen(
+                    onNavigateToMusic  = { navigateToTab(Routes.MUSIC) },
+                    onNavigateToMovies = { navigateToTab(Routes.MOVIES) }
+                )
             }
 
             composable(Routes.MUSIC) {
