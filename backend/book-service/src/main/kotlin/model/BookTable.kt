@@ -4,9 +4,9 @@ import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.javatime.datetime
 import java.time.LocalDateTime
 
-object VideosTable : IntIdTable() {
+object BookTable : IntIdTable() {
     val title = varchar("title", 255)
-    val descriptor = varchar("description", 1000)
+    val description = varchar("description", 1000)
     val author = varchar("author", 255)
     val year = integer("year")
     val fileUrl = varchar("fileUrl", 255)
