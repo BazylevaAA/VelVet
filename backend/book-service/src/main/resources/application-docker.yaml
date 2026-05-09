@@ -12,13 +12,13 @@ jwt:
   realm: "velvet"
 
 minio:
-  endpoint: "http://localhost:9000"
+  endpoint: "http://minio:9000"
   accessKey: "minioadmin"
   secretKey: "minioadmin"
   bucket: "velvet-book"
 
 database:
-  url: "jdbc:postgresql://localhost:5434/velvet_book"
+  url: "jdbc:postgresql://postgres-book:5432/velvet_book"
   user: "postgres"
   password: "postgres"
   driver: "org.postgresql.Driver"
