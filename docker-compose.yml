@@ -50,6 +50,23 @@ services:
       timeout: 5s
       retries: 10
 
+  postgres-book:
+    image: postgres:16-alpine
+    container_name: velvet-postgres-book
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: velvet_book
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-book-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   minio:
     image: minio/minio:latest
     container_name: velvet-minio
@@ -108,8 +125,23 @@ services:
         condition: service_healthy
     restart: on-failure
 
+  book-service:
+    build:
+      context: ./backend/book-service
+      dockerfile: Dockerfile
+    container_name: velvet-book
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres-book:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: on-failure
+
 volumes:
   postgres-auth-data:
   postgres-music-data:
   postgres-video-data:
+  postgres-book-data:
   minio-data:
