@@ -89,6 +89,9 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.common.ktx)
 
+    // --- WebView (EPUB reader) ---
+    implementation("androidx.webkit:webkit:1.12.1")
+
     // --- Тесты ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -2,6 +2,7 @@ package com.example.app.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Movie
@@ -24,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.app.core.storage.TokenStorage
 import com.example.app.feature.auth.presentation.LoginScreen
 import com.example.app.feature.auth.presentation.RegisterScreen
+import com.example.app.feature.book.presentation.BookScreen
 import com.example.app.feature.home.presentation.HomeScreen
 import com.example.app.feature.music.presentation.MusicScreen
 import com.example.app.feature.video.presentation.VideoScreen
@@ -35,6 +37,7 @@ object Routes {
     const val HOME     = "home"
     const val MUSIC    = "music"
     const val MOVIES   = "movies"
+    const val BOOKS    = "books"
 }
 
 data class BottomNavItem(
@@ -46,7 +49,8 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(Routes.HOME,   Icons.Filled.Home,      "Home"),
     BottomNavItem(Routes.MUSIC,  Icons.Filled.MusicNote, "Music"),
-    BottomNavItem(Routes.MOVIES, Icons.Filled.Movie,     "Movies")
+    BottomNavItem(Routes.MOVIES, Icons.Filled.Movie,     "Movies"),
+    BottomNavItem(Routes.BOOKS,  Icons.Filled.Book,      "Books")
 )
 
 @Composable
@@ -61,7 +65,7 @@ fun NavGraph() {
     val currentRoute = navController
         .currentBackStackEntryAsState().value?.destination?.route
 
-    val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.MUSIC, Routes.MOVIES)
+    val showBottomBar = currentRoute in listOf(Routes.HOME, Routes.MUSIC, Routes.MOVIES, Routes.BOOKS)
 
     // Единая функция навигации по табам — всегда popUpTo(HOME) явно,
     // чтобы findStartDestination() не возвращал LOGIN после входа в систему.
@@ -128,7 +132,8 @@ fun NavGraph() {
             composable(Routes.HOME) {
                 HomeScreen(
                     onNavigateToMusic  = { navigateToTab(Routes.MUSIC) },
-                    onNavigateToMovies = { navigateToTab(Routes.MOVIES) }
+                    onNavigateToMovies = { navigateToTab(Routes.MOVIES) },
+                    onNavigateToBooks  = { navigateToTab(Routes.BOOKS) }
                 )
             }
 
@@ -138,6 +143,10 @@ fun NavGraph() {
 
             composable(Routes.MOVIES) {
                 VideoScreen()
+            }
+
+            composable(Routes.BOOKS) {
+                BookScreen()
             }
         }
     }

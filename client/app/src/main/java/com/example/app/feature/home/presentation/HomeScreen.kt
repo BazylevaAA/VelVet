@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
@@ -22,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.app.core.storage.TokenStorage
+import com.example.app.feature.book.domain.model.BookModel
 import com.example.app.feature.music.domain.model.TrackModel
 import com.example.app.feature.music.presentation.formatDuration
 import com.example.app.feature.video.domain.model.VideoModel
@@ -32,7 +35,8 @@ import org.koin.compose.koinInject
 fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
     onNavigateToMusic: () -> Unit = {},
-    onNavigateToMovies: () -> Unit = {}
+    onNavigateToMovies: () -> Unit = {},
+    onNavigateToBooks: () -> Unit = {}
 ) {
     val tokenStorage = koinInject<TokenStorage>()
     val name by tokenStorage.name.collectAsState(initial = "")
@@ -41,6 +45,7 @@ fun HomeScreen(
     val quickAccessItems = listOf(
         QuickAccessItem("Music",  Icons.Filled.MusicNote, Color(0xFF1DB954), onNavigateToMusic),
         QuickAccessItem("Movies", Icons.Filled.Movie,     Color(0xFFE50914), onNavigateToMovies),
+        QuickAccessItem("Books",  Icons.Filled.Book,      Color(0xFF7C5CBF), onNavigateToBooks),
     )
 
     LazyColumn(
@@ -154,6 +159,36 @@ fun HomeScreen(
                     ) {
                         items(uiState.recentVideos, key = { it.id }) { video ->
                             RecentVideoCard(video = video, onClick = onNavigateToMovies)
+                        }
+                    }
+                }
+            }
+        }
+
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+
+        item { SectionHeader(title = "Recently Added Books") }
+
+        item {
+            when {
+                uiState.isLoadingBooks -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                uiState.recentBooks.isEmpty() -> EmptySection(message = "No books yet")
+                else -> {
+                    LazyRow(
+                        contentPadding        = PaddingValues(horizontal = 24.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(uiState.recentBooks, key = { it.id }) { book ->
+                            RecentBookCard(book = book, onClick = onNavigateToBooks)
                         }
                     }
                 }
@@ -355,6 +390,70 @@ fun QuickAccessCard(item: QuickAccessItem) {
                     text  = item.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RecentBookCard(book: BookModel, onClick: () -> Unit) {
+    val isEpub = book.fileUrl.contains(".epub")
+    Card(
+        onClick  = onClick,
+        modifier = Modifier
+            .width(160.dp)
+            .height(160.dp),
+        shape  = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF7C5CBF).copy(alpha = 0.4f),
+                            MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    )
+                )
+        ) {
+            Icon(
+                imageVector        = Icons.Filled.AutoStories,
+                contentDescription = null,
+                tint               = Color(0xFF7C5CBF).copy(alpha = 0.5f),
+                modifier           = Modifier
+                    .size(64.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text     = book.title,
+                    style    = MaterialTheme.typography.titleSmall,
+                    color    = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text     = book.author,
+                    style    = MaterialTheme.typography.bodySmall,
+                    color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text  = if (isEpub) "EPUB · ${book.year}" else "PDF · ${book.year}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF7C5CBF)
                 )
             }
         }

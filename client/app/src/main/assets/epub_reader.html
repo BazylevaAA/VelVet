@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%; min-height: 100%;
+            background: #fff; color: #1a1a1a;
+            font-family: serif; font-size: 17px; line-height: 1.6;
+        }
+        #content {
+            padding: 20px 18px 60px;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        #content img, #content svg {
+            max-width: 100%; height: auto; display: block;
+            margin: 12px auto;
+        }
+        #content p { margin: 0 0 1em 0; }
+        #content h1, #content h2, #content h3 {
+            margin: 1em 0 0.5em; line-height: 1.3;
+        }
+        #status {
+            position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666; font-size: 15px; text-align: center;
+            padding: 16px; z-index: 99;
+        }
+        #nav-info {
+            position: fixed; bottom: 12px; left: 0; right: 0;
+            text-align: center; color: rgba(0,0,0,0.4);
+            font-size: 12px; pointer-events: none; z-index: 98;
+            font-family: sans-serif;
+        }
+        body.dark { background: #121212; color: #e0e0e0; }
+        body.dark #status { color: #aaa; }
+        body.dark #nav-info { color: rgba(255,255,255,0.4); }
+    </style>
+</head>
+<body>
+<div id="status">Открываем книгу…</div>
+<div id="content"></div>
+<div id="nav-info"></div>
+
+<script src="jszip.min.js"></script>
+<script>
+    var spine  = [];
+    var curIdx = 0;
+    var cache  = {};
+
+    var BINARY_MIMES = {
+        png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+        gif: 'image/gif', svg: 'image/svg+xml',
+        ttf: 'font/ttf', otf: 'font/otf',
+        woff: 'font/woff', woff2: 'font/woff2'
+    };
+
+    function setStatus(msg) {
+        console.log('[EPUB] ' + msg);
+        var el = document.getElementById('status');
+        if (msg) {
+            el.textContent = msg;
+            el.style.display = '';
+        } else {
+            el.style.display = 'none';
+        }
+    }
+
+    function resolvePath(base, rel) {
+        if (/^(https?:|blob:|data:|#)/.test(rel)) return rel;
+        var parts = (base + rel).split('/');
+        var out = [];
+        for (var i = 0; i < parts.length; i++) {
+            if      (parts[i] === '..') out.pop();
+            else if (parts[i] !== '.')  out.push(parts[i]);
+        }
+        return out.join('/');
+    }
+
+    async function buildDataUri(zipPath) {
+        if (cache[zipPath] !== undefined) return cache[zipPath];
+        var zFile = window._zip.file(zipPath);
+        if (!zFile) {
+            console.log('[EPUB] resource not in zip: ' + zipPath);
+            cache[zipPath] = null;
+            return null;
+        }
+
+        var ext    = zipPath.split('.').pop().toLowerCase();
+        var result = null;
+
+        if (ext === 'css') {
+            var cssDir = zipPath.includes('/')
+                ? zipPath.slice(0, zipPath.lastIndexOf('/') + 1) : '';
+            var css = await zFile.async('text');
+
+            var refPaths = [];
+            var seen = {};
+            css.replace(/url\(['"]?([^'")]+)['"]?\)/g, function(m, href) {
+                if (/^(data:|https?:|blob:)/.test(href)) return;
+                var rp = resolvePath(cssDir, href);
+                if (!seen[rp]) { seen[rp] = true; refPaths.push(rp); }
+            });
+
+            var cssResMap = {};
+            await Promise.all(refPaths.map(async function(rp) {
+                var uri = await buildDataUri(rp);
+                if (uri) cssResMap[rp] = uri;
+            }));
+
+            css = css.replace(/url\(['"]?([^'")]+)['"]?\)/g, function(m, href) {
+                if (/^(data:|https?:|blob:)/.test(href)) return m;
+                var rp = resolvePath(cssDir, href);
+                return cssResMap[rp] ? 'url("' + cssResMap[rp] + '")' : m;
+            });
+
+            result = 'data:text/css;charset=utf-8;base64,' +
+                btoa(unescape(encodeURIComponent(css)));
+        } else {
+            var mime = BINARY_MIMES[ext];
+            if (mime) {
+                var b64 = await zFile.async('base64');
+                result = 'data:' + mime + ';base64,' + b64;
+            }
+        }
+
+        cache[zipPath] = result;
+        return result;
+    }
+
+    async function showChapter(idx) {
+        console.log('[EPUB] showChapter start, idx=' + idx);
+        setStatus('Загрузка главы…');
+
+        var path = spine[idx];
+        console.log('[EPUB] chapter path: ' + path);
+
+        if (!path) {
+            setStatus('Пустой путь к главе ' + idx);
+            return;
+        }
+
+        var dir  = path.includes('/') ? path.slice(0, path.lastIndexOf('/') + 1) : '';
+        var file = window._zip.file(path);
+
+        if (!file) {
+            console.log('[EPUB] available files: ' +
+                Object.keys(window._zip.files).slice(0, 10).join(', '));
+            setStatus('Глава не найдена в архиве: ' + path);
+            return;
+        }
+
+        var html;
+        try {
+            html = await file.async('text');
+            console.log('[EPUB] chapter ' + idx + ' raw length: ' + html.length);
+        } catch (e) {
+            setStatus('Ошибка чтения главы: ' + e);
+            console.log('[EPUB] chapter read error: ' + (e.stack || e));
+            return;
+        }
+
+        // Парсим как XML/HTML и берём только body
+        var doc;
+        try {
+            doc = new DOMParser().parseFromString(html, 'application/xhtml+xml');
+            // Если ошибка парсинга XHTML — пробуем HTML
+            if (doc.querySelector('parsererror')) {
+                doc = new DOMParser().parseFromString(html, 'text/html');
+            }
+        } catch (e) {
+            doc = new DOMParser().parseFromString(html, 'text/html');
+        }
+
+        var body = doc.body || doc.querySelector('body');
+        if (!body) {
+            setStatus('Не удалось разобрать главу');
+            console.log('[EPUB] no body in chapter');
+            return;
+        }
+
+        console.log('[EPUB] body html length: ' + body.innerHTML.length);
+
+        // Собираем все href/src ссылки и заменяем на data URI
+        var refPaths = [];
+        var seen = {};
+
+        body.querySelectorAll('img, image').forEach(function(el) {
+            var href = el.getAttribute('src') || el.getAttribute('xlink:href') ||
+                       el.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+            if (href && !/^(https?:|data:|blob:|#)/.test(href)) {
+                var rp = resolvePath(dir, href);
+                if (!seen[rp]) { seen[rp] = true; refPaths.push(rp); }
+            }
+        });
+
+        // CSS-ссылки в head оригинала
+        var cssLinks = [];
+        (doc.querySelectorAll('link[rel="stylesheet"]') || []).forEach(function(el) {
+            var href = el.getAttribute('href');
+            if (href && !/^(https?:|data:|blob:)/.test(href)) {
+                cssLinks.push(resolvePath(dir, href));
+            }
+        });
+
+        // Загружаем все ресурсы (картинки)
+        var resMap = {};
+        await Promise.all(refPaths.map(async function(rp) {
+            var uri = await buildDataUri(rp);
+            if (uri) resMap[rp] = uri;
+        }));
+
+        // Загружаем CSS как текст и собираем
+        var cssText = '';
+        for (var i = 0; i < cssLinks.length; i++) {
+            var cssFile = window._zip.file(cssLinks[i]);
+            if (cssFile) {
+                var cssDir = cssLinks[i].includes('/')
+                    ? cssLinks[i].slice(0, cssLinks[i].lastIndexOf('/') + 1) : '';
+                var raw = await cssFile.async('text');
+
+                var cssRefs = [];
+                var cssSeen = {};
+                raw.replace(/url\(['"]?([^'")]+)['"]?\)/g, function(m, href) {
+                    if (/^(data:|https?:|blob:)/.test(href)) return;
+                    var rp = resolvePath(cssDir, href);
+                    if (!cssSeen[rp]) { cssSeen[rp] = true; cssRefs.push(rp); }
+                });
+
+                var cssResMap = {};
+                await Promise.all(cssRefs.map(async function(rp) {
+                    var uri = await buildDataUri(rp);
+                    if (uri) cssResMap[rp] = uri;
+                }));
+
+                raw = raw.replace(/url\(['"]?([^'")]+)['"]?\)/g, function(m, href) {
+                    if (/^(data:|https?:|blob:)/.test(href)) return m;
+                    var rp = resolvePath(cssDir, href);
+                    return cssResMap[rp] ? 'url("' + cssResMap[rp] + '")' : m;
+                });
+
+                // Скоупим селекторы под #content чтобы не сломать UI ридера
+                cssText += '\n/* ' + cssLinks[i] + ' */\n' + scopeCss(raw, '#content');
+            }
+        }
+
+        // Применяем картинки
+        body.querySelectorAll('img, image').forEach(function(el) {
+            var href = el.getAttribute('src') || el.getAttribute('xlink:href') ||
+                       el.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+            if (href && !/^(https?:|data:|blob:|#)/.test(href)) {
+                var rp = resolvePath(dir, href);
+                if (resMap[rp]) {
+                    if (el.hasAttribute('src')) el.setAttribute('src', resMap[rp]);
+                    if (el.hasAttribute('xlink:href')) el.setAttribute('xlink:href', resMap[rp]);
+                }
+            }
+        });
+
+        // Вставляем CSS в head
+        var oldStyle = document.getElementById('chapter-style');
+        if (oldStyle) oldStyle.remove();
+        if (cssText) {
+            var styleEl = document.createElement('style');
+            styleEl.id = 'chapter-style';
+            styleEl.textContent = cssText;
+            document.head.appendChild(styleEl);
+        }
+
+        // Кладём контент
+        var content = document.getElementById('content');
+        content.innerHTML = body.innerHTML;
+        window.scrollTo(0, 0);
+
+        setStatus('');
+        document.getElementById('nav-info').textContent =
+            (idx + 1) + ' / ' + spine.length;
+
+        console.log('[EPUB] chapter ' + idx + ' rendered, content length: ' +
+            content.innerHTML.length);
+    }
+
+    // Скоупим CSS-правила под заданный селектор
+    function scopeCss(css, scope) {
+        // Удаляем @import (мы их не поддерживаем здесь)
+        css = css.replace(/@import[^;]+;/g, '');
+        // Префиксуем селекторы
+        return css.replace(/(^|\})\s*([^@\}\{]+)\{/g, function(m, brace, selectors) {
+            var prefixed = selectors.split(',').map(function(s) {
+                s = s.trim();
+                if (!s) return s;
+                if (s.indexOf('html') === 0 || s.indexOf('body') === 0) {
+                    return scope + ' ' + s.replace(/^(html|body)/, '').trim();
+                }
+                return scope + ' ' + s;
+            }).join(', ');
+            return brace + ' ' + prefixed + '{';
+        });
+    }
+
+    async function openBook(url) {
+        setStatus('Загрузка…');
+        try {
+            var resp = await fetch(url);
+            if (!resp.ok) { setStatus('HTTP ошибка: ' + resp.status); return; }
+
+            setStatus('Распаковка…');
+            var zip = await JSZip.loadAsync(await resp.arrayBuffer());
+            window._zip = zip;
+            console.log('[EPUB] zip loaded, files: ' + Object.keys(zip.files).length);
+
+            var cFile = zip.file('META-INF/container.xml');
+            if (!cFile) { setStatus('Нет container.xml'); return; }
+            var opfPath = new DOMParser()
+                .parseFromString(await cFile.async('text'), 'text/xml')
+                .querySelector('rootfile[full-path]')
+                .getAttribute('full-path');
+            var opfDir = opfPath.includes('/')
+                ? opfPath.slice(0, opfPath.lastIndexOf('/') + 1) : '';
+            console.log('[EPUB] opf path: ' + opfPath + ', dir: ' + opfDir);
+
+            var opfDoc = new DOMParser().parseFromString(
+                await zip.file(opfPath).async('text'), 'text/xml');
+
+            var manifest = {};
+            opfDoc.querySelectorAll('manifest item').forEach(function(el) {
+                manifest[el.getAttribute('id')] = {
+                    href: resolvePath(opfDir, el.getAttribute('href')),
+                    type: el.getAttribute('media-type') || ''
+                };
+            });
+            console.log('[EPUB] manifest items: ' + Object.keys(manifest).length);
+
+            spine = [];
+            opfDoc.querySelectorAll('spine itemref').forEach(function(el) {
+                var item = manifest[el.getAttribute('idref')];
+                if (item) spine.push(item.href);
+            });
+            if (!spine.length) { setStatus('Нет глав в книге'); return; }
+            console.log('[EPUB] spine length: ' + spine.length +
+                ', first 3: ' + spine.slice(0, 3).join(' | '));
+
+            curIdx = 0;
+            await showChapter(0);
+
+            // Свайпы: листание глав
+            var startX = 0, startY = 0;
+            document.addEventListener('touchstart', function(e) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+            }, { passive: true });
+            document.addEventListener('touchend', function(e) {
+                var dx = e.changedTouches[0].clientX - startX;
+                var dy = e.changedTouches[0].clientY - startY;
+                // только горизонтальный свайп
+                if (Math.abs(dx) < 60 || Math.abs(dy) > Math.abs(dx)) return;
+                if (dx < 0 && curIdx < spine.length - 1) showChapter(++curIdx);
+                else if (dx > 0 && curIdx > 0)           showChapter(--curIdx);
+            }, { passive: true });
+
+        } catch (e) {
+            setStatus('Ошибка: ' + e);
+            console.log('[EPUB] stack: ' + (e.stack || e));
+        }
+    }
+</script>
+</body>
+</html>
