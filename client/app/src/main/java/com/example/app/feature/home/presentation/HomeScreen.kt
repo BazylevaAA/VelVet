@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Movie
@@ -36,7 +37,8 @@ fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
     onNavigateToMusic: () -> Unit = {},
     onNavigateToMovies: () -> Unit = {},
-    onNavigateToBooks: () -> Unit = {}
+    onNavigateToBooks: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val tokenStorage = koinInject<TokenStorage>()
     val name by tokenStorage.name.collectAsState(initial = "")
@@ -80,6 +82,16 @@ fun HomeScreen(
                         style = MaterialTheme.typography.headlineLarge,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+                IconButton(
+                    onClick  = onLogout,
+                    modifier = Modifier.align(Alignment.TopEnd)
+                ) {
+                    Icon(
+                        imageVector        = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = "Logout",
+                        tint               = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

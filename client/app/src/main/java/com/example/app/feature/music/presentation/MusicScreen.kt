@@ -73,7 +73,7 @@ fun MusicScreen(viewModel: MusicViewModel = koinViewModel()) {
                 trailingIcon = {
                     if (searchQuery.isNotEmpty()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Filled.Close, null)
+                            Icon(Icons.Filled.Close, contentDescription = "Clear search")
                         }
                     }
                 },

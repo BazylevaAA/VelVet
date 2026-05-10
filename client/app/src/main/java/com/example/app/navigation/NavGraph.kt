@@ -22,6 +22,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import com.example.app.core.storage.TokenStorage
 import com.example.app.feature.auth.presentation.LoginScreen
 import com.example.app.feature.auth.presentation.RegisterScreen
@@ -130,10 +132,19 @@ fun NavGraph() {
             }
 
             composable(Routes.HOME) {
+                val scope = rememberCoroutineScope()
                 HomeScreen(
                     onNavigateToMusic  = { navigateToTab(Routes.MUSIC) },
                     onNavigateToMovies = { navigateToTab(Routes.MOVIES) },
-                    onNavigateToBooks  = { navigateToTab(Routes.BOOKS) }
+                    onNavigateToBooks  = { navigateToTab(Routes.BOOKS) },
+                    onLogout = {
+                        scope.launch {
+                            tokenStorage.clear()
+                            navController.navigate(Routes.LOGIN) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                    }
                 )
             }
 
