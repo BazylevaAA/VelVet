@@ -1,12 +1,12 @@
 package com.example.database
 
+import com.example.model.BookTable
 import io.ktor.server.application.Application
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
-import javax.xml.crypto.Data
 
 object DatabaseFactory {
 
@@ -19,7 +19,7 @@ object DatabaseFactory {
         Database.connect(url, driver, user, password)
 
         transaction {
-            SchemaUtils.create(BooksTable)
+            SchemaUtils.create(BookTable)
         }
     }
 }

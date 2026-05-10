@@ -93,11 +93,11 @@ class VideoService(
         }
 
         // Удаляем файлы из MinIO
-        val videoKey = video.fileUrl.substringAfterLast("velvet-movie/")
+        val videoKey = video.fileUrl.substringAfter("velvet-video/")
         MinioStorage.deleteFile(videoKey)
 
         video.coverUrl?.let { url ->
-            val coverKey = url.substringAfterLast("velvet-movie/")
+            val coverKey = url.substringAfter("velvet-video/")
             MinioStorage.deleteFile(coverKey)
         }
 

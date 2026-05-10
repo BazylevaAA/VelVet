@@ -32,7 +32,7 @@ class BookRepository{
         year: Int,
         fileUrl: String,
         coverUrl: String,
-        uesrId: Int
+        userId: Int
     ): Book = dbQuery{
         val id = BookTable.insertAndGetId {
             it[BookTable.title] = title
@@ -43,7 +43,7 @@ class BookRepository{
             it[BookTable.coverUrl] = coverUrl
             it[BookTable.userId] = userId
         }
-        Book(id.value, title, description, author, year, fileUrl, coverUrl, uesrId)
+        Book(id.value, title, description, author, year, fileUrl, coverUrl, userId)
     }
 
     suspend fun delete(id: Int) = dbQuery {
@@ -64,7 +64,7 @@ class BookRepository{
         author = row[BookTable.author],
         year = row[BookTable.year],
         fileUrl = row[BookTable.fileUrl],
-        coverUrl = row[BookTable.coverUrl],
+        coverUrl = row[BookTable.coverUrl].takeIf { it.isNotBlank() },
         userId = row[BookTable.userId],
     )
 }

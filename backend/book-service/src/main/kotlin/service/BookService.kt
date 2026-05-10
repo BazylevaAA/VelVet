@@ -61,7 +61,7 @@ class BookService(
             year = request.year,
             fileUrl = fileUrl,
             coverUrl = coverUrl ?: "",
-            uesrId = userId
+            userId = userId
         )
 
         return toResponse(book)
@@ -90,11 +90,11 @@ class BookService(
             throw BookException(HttpStatusCode.Forbidden, "Access denied")
         }
 
-        val fileKey = book.fileUrl.substringAfterLast("velvet-book/")
+        val fileKey = book.fileUrl.substringAfter("velvet-book/")
         MinioStorage.deleteFile(fileKey)
 
-        book.coverUrl?.let { url ->
-            val coverKey = url.substringAfterLast("velvet-book/")
+        if (!book.coverUrl.isNullOrBlank()) {
+            val coverKey = book.coverUrl.substringAfter("velvet-book/")
             MinioStorage.deleteFile(coverKey)
         }
 
